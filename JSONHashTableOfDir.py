@@ -31,10 +31,11 @@ def addToTable(dirPath: str, table: dict, relPath: str = "")->None:
     for o in os.listdir(dirPath):
         _fullPath = os.path.join(dirPath, o)
         if (os.path.isfile(_fullPath)):
+            _relName = relPath + o
             # Adds the path to the dict as the key and the hash as the value.
-            table[relPath + o] = base64.b64encode(
+            table[_relName] = base64.b64encode(
                 sha256FromFile(_fullPath)).decode('utf-8')
-            print("Computed file {0}.".format(json.dumps(o)))
+            print("File {0}.".format(json.dumps(_relName)))
         elif (os.path.isdir(_fullPath)):
             # Recursively add the files from the other directories.
             addToTable(_fullPath, table, relPath + o + "/")
