@@ -1,15 +1,38 @@
-import sys, os, hashlib, base64, json, traceback
+import sys, os, hashlib, base64, json, traceback, re
 
-if (len(sys.argv) < 3):
-    print(
-        "Writes to <outputFile> a JSON object representing a hash"
-        "table of all the files inside <directory>."
-    )
-    print("Usage: {0} <directory> <outputFile>".format(os.path.basename(sys.argv[0])))
+# NOTE: change this to False to disable the use of eval().
+_allowEval: bool = True
+
+if (len(sys.argv) < 3 or len(sys.argv) > 4):
+    _msg: str = ("Writes to <outputFile> a JSON object representing a hash"
+        "table of all the files inside <directory>.")
+    if _allowEval:
+        _msg += (
+            " Optionally, it is possible to specify the boolean Python expression "
+            "<pythonCond> as a condition for choosing which files get chosen. The "
+            "only module it has access to is re (for regular expressions) and the "
+            "only value it has access to is 'fileName' (the Posix relative path of "
+            "the current file being checked).\n"
+        )
+    print(_msg)
+    print("Usage: {0} <directory> <outputFile> [<pythonCond>]".format(os.path.basename(sys.argv[0])))
     exit(0)
 
 _dirPath = sys.argv[1]
 _outPath = sys.argv[2]
+
+_cond = None
+# NOTE: _allowEval must be True for using the Python condition expression.
+if _allowEval and len(sys.argv) == 4:
+    _env: dict = {
+        "locals": None,
+        "globals": None,
+        "__name__": None,
+        "__file__": None,
+        "__builtins__": None,
+        "re": re
+    }
+    _cond = eval("lambda fileName: " + sys.argv[3], _env)
 
 # Computes the SHA-256 hash from the stream using a buffer.
 def sha256FromStream(fileStream):
@@ -26,21 +49,23 @@ def sha256FromFile(filePath):
 
 # relPath is the current relative path in Posix notation (with each recursion the directory 
 # name is appended, followed by "/").
-def addToTable(dirPath: str, table: dict, relPath: str = "")->int:
+def addToTable(dirPath: str, table: dict, cond, relPath: str = "")->int:
     _errors: int = 0
     for o in os.listdir(dirPath):
         _fullPath = os.path.join(dirPath, o)
         try:
-            if (os.path.isfile(_fullPath)):
+            if os.path.isfile(_fullPath):
                 _relName = relPath + o
-                _hashStr = base64.b64encode(
-                    sha256FromFile(_fullPath)).decode('utf-8')
-                # The relative path is the key and the hash is the value.
-                table[_relName] = _hashStr
-                print("File {0}.".format(json.dumps(_relName)))
+                # If there is no condition expression or the condition passes.
+                if not cond or cond(_relName):
+                    _hashStr = base64.b64encode(
+                        sha256FromFile(_fullPath)).decode('utf-8')
+                    # The relative path is the key and the hash is the value.
+                    table[_relName] = _hashStr
+                    print("File {0}.".format(json.dumps(_relName)))
             elif (os.path.isdir(_fullPath)):
                 # Recursively add the files from the other directories.
-                _errors += addToTable(_fullPath, table, relPath + o + "/")
+                _errors += addToTable(_fullPath, table, cond, relPath + o + "/")
         except Exception as e:
             # Prints the exception manually.
             traceback.print_exception(e)
@@ -50,7 +75,7 @@ def addToTable(dirPath: str, table: dict, relPath: str = "")->int:
 
 _table = {}
 # Returns the amount of errors found during the procedure.
-_errors = addToTable(_dirPath, _table)
+_errors = addToTable(_dirPath, _table, _cond)
 
 with open(_outPath, "w") as _outFile:
     json.dump(_table, _outFile, indent=4)
