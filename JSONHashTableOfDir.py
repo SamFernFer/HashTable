@@ -1,4 +1,4 @@
-import sys, os, hashlib, base64, json
+import sys, os, hashlib, base64, json, traceback
 
 if (len(sys.argv) < 3):
     print(
@@ -10,7 +10,6 @@ if (len(sys.argv) < 3):
 
 _dirPath = sys.argv[1]
 _outPath = sys.argv[2]
-_table = {}
 
 # Computes the SHA-256 hash from the stream using a buffer.
 def sha256FromStream(fileStream):
@@ -27,22 +26,36 @@ def sha256FromFile(filePath):
 
 # relPath is the current relative path in Posix notation (with each recursion the directory 
 # name is appended, followed by "/").
-def addToTable(dirPath: str, table: dict, relPath: str = "")->None:
+def addToTable(dirPath: str, table: dict, relPath: str = "")->int:
+    _errors: int = 0
     for o in os.listdir(dirPath):
         _fullPath = os.path.join(dirPath, o)
-        if (os.path.isfile(_fullPath)):
-            _relName = relPath + o
-            # Adds the path to the dict as the key and the hash as the value.
-            table[_relName] = base64.b64encode(
-                sha256FromFile(_fullPath)).decode('utf-8')
-            print("File {0}.".format(json.dumps(_relName)))
-        elif (os.path.isdir(_fullPath)):
-            # Recursively add the files from the other directories.
-            addToTable(_fullPath, table, relPath + o + "/")
+        try:
+            if (os.path.isfile(_fullPath)):
+                _relName = relPath + o
+                _hashStr = base64.b64encode(
+                    sha256FromFile(_fullPath)).decode('utf-8')
+                # The relative path is the key and the hash is the value.
+                table[_relName] = _hashStr
+                print("File {0}.".format(json.dumps(_relName)))
+            elif (os.path.isdir(_fullPath)):
+                # Recursively add the files from the other directories.
+                _errors += addToTable(_fullPath, table, relPath + o + "/")
+        except Exception as e:
+            # Prints the exception manually.
+            traceback.print_exception(e)
+            # Increment the error counter.
+            _errors += 1
+    return _errors
 
-addToTable(_dirPath, _table)
+_table = {}
+# Returns the amount of errors found during the procedure.
+_errors = addToTable(_dirPath, _table)
 
 with open(_outPath, "w") as _outFile:
     json.dump(_table, _outFile, indent=4)
 
-print("Hash table file created successfully.")
+if _errors > 0:
+    print("Hash table file created with {0} errors.".format(_errors))
+else:
+    print("Hash table file created successfully.")

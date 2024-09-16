@@ -25,12 +25,15 @@ with open(_firstPath) as _firstFile:
             if _other is None:
                 print("[Missing]: {0}".format(json.dumps(k)))
                 _hasMissing = True
-            # The second table's file has a different hash.
-            elif v != _other:
-                print("[Different]: {0}".format(json.dumps(k)))
-                _hasDifferent = True
-            # Removes the entry from the second table for later checking for extra files.
-            _secondTable.pop(k)
+            # If the file is present.
+            else:
+                # The second table's file has a different hash.
+                if v != _other:
+                    print("[Different]: {0}".format(json.dumps(k)))
+                    _hasDifferent = True
+                # Removes the entry from the second table for later checking for extra files.
+                # Only pops if when the key is present, of course.
+                _secondTable.pop(k)
 
         # List the extra files from the second table.
         for k,v in _secondTable.items():
