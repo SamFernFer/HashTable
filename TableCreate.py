@@ -9,7 +9,7 @@ if (len(sys.argv) < 3 or len(sys.argv) > 4):
     if _allowEval:
         _msg += (
             " Optionally, it is possible to specify the boolean Python expression "
-            "<pythonCond> as a condition for choosing which files get chosen. The "
+            "<pythonCond> as a condition to specify which files to choose. The "
             "only module it has access to is re (for regular expressions) and the "
             "only value it has access to is 'fileName' (the Posix relative path of "
             "the current file being checked).\n"
