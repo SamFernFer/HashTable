@@ -3,7 +3,7 @@ import sys, os, hashlib, base64, json, traceback, re
 # NOTE: change this to False to disable the use of eval().
 _allowEval: bool = True
 
-if (len(sys.argv) < 3 or len(sys.argv) > 4):
+if len(sys.argv) < 3 or len(sys.argv) > 4:
     _msg: str = ("Writes to <outputFile> a JSON object representing a hash"
         "table of all the files inside <directory>.")
     if _allowEval:

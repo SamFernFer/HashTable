@@ -1,15 +1,31 @@
 import sys, os, json
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 2 or len(sys.argv) > 3:
     print(
         "Compares two JSON hash tables. The first file is considered "
-        + "the reference one when listing the differences."
+        "the reference one when listing the differences. If a single path "
+        "is passed, then considers it a directory and uses the file "
+        "\"sourceTable.json\" as the first file and the file \"destTable.json\" "
+        "as the second one, both inside the specified directory."
     )
-    print("Usage: {0} <firstFile> <secondFile>".format(os.path.basename(sys.argv[0])))
+    print(
+        "Usage 1: {0} <firstFile> <secondFile>"
+        "Usage 2: {0} <dirPath>"
+        .format(os.path.basename(sys.argv[0]))
+    )
     exit(0)
 
-_firstPath = sys.argv[1]
-_secondPath = sys.argv[2]
+_firstPath: str
+_secondPath: str
+
+if len(sys.argv) == 2:
+    _dir: str = sys.argv[1]
+
+    _firstPath = os.path.join(_dir, "sourceTable.json")
+    _secondPath = os.path.join(_dir, "destTable.json")
+else:
+    _firstPath = sys.argv[1]
+    _secondPath = sys.argv[2]
 
 with open(_firstPath) as _firstFile:
     with open(_secondPath) as _secondFile:
