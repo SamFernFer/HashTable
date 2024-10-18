@@ -64,8 +64,11 @@ def addToTable(dirPath: str, table: dict, cond, relPath: str = "")->int:
                     table[_relName] = _hashStr
                     print("File {0}.".format(json.dumps(_relName)))
             elif (os.path.isdir(_fullPath)):
-                # Recursively add the files from the other directories.
-                _errors += addToTable(_fullPath, table, cond, relPath + o + "/")
+                _relName = relPath + o + "/"
+                # If there is no condition expression or the condition passes.
+                if not cond or cond(_relName):
+                    # Recursively add the files from the other directories.
+                    _errors += addToTable(_fullPath, table, cond, _relName)
         except Exception as e:
             # Prints the exception manually.
             traceback.print_exception(e)
